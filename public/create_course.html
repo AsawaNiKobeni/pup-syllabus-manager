@@ -143,13 +143,41 @@
 </main>
 
 <script>
-const API_BASE = "http://localhost/syllabus/public/api.php?action=";
+const API_BASE = "http://localhost/pup-syllabus-manager/public/api.php?action=";
 
+// ✅ Utility: fetch with timeout
+function fetchWithTimeout(resource, options = {}, timeout = 10000) {
+  return Promise.race([
+    fetch(resource, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("⏳ Request timed out")), timeout)
+    )
+  ]);
+}
+
+// ✅ Safe request wrapper
 async function request(action, params={}, method='POST') {
   const url = API_BASE + encodeURIComponent(action);
-  const opts = { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(params) };
-  const res = await fetch(url, opts);
-  return res.json();
+  const opts = { 
+    method, 
+    headers: {'Content-Type':'application/json'}, 
+    body: JSON.stringify(params) 
+  };
+
+  try {
+    const res = await fetchWithTimeout(url, opts);
+    if (!res.ok) {
+      throw new Error(`❌ Server returned ${res.status} ${res.statusText}`);
+    }
+    const data = await res.json();
+    if (data.error) {
+      throw new Error("⚠️ API Error: " + data.error);
+    }
+    return data;
+  } catch (err) {
+    console.error("Request failed:", err);
+    return { success: false, error: err.message };
+  }
 }
 
 function addTPRow() {
@@ -247,12 +275,27 @@ function removeAppRow(btn) {
   Array.from(container.children).forEach((row, i) => row.querySelector('h4').textContent = `Approval ${i + 1}`);
 }
 
+// ✅ Create Course with validation + error handling
 async function createCourse(e) {
   e.preventDefault();
+
+  // Simple validation
+  const code = document.getElementById('new_code').value.trim();
+  const title = document.getElementById('new_title').value.trim();
+  const credits = document.getElementById('new_credits').value.trim();
+  if (!code || !title) {
+    alert("⚠️ Course code and title are required.");
+    return;
+  }
+  if (credits === "" || isNaN(credits)) {
+    alert("⚠️ Credits must be a number.");
+    return;
+  }
+
   const payload = {
-    code: document.getElementById('new_code').value.trim(),
-    title: document.getElementById('new_title').value.trim(),
-    credits: parseInt(document.getElementById('new_credits').value || 0, 10),
+    code,
+    title,
+    credits: parseInt(credits, 10),
     description: document.getElementById('new_description').value,
     schedule_day: document.getElementById('new_schedule_day').value,
     schedule_time: document.getElementById('new_schedule_time').value,
@@ -298,6 +341,7 @@ async function createCourse(e) {
       date: div.querySelectorAll('input')[2].value
     }))
   };
+
   const res = await request('add_course', payload, 'POST');
   if (res.success) {
     alert("✅ Course added!");
@@ -307,7 +351,7 @@ async function createCourse(e) {
     document.getElementById('rubContainer').innerHTML='';
     document.getElementById('appContainer').innerHTML='';
   } else {
-    alert(res.error || "❌ Failed to add course.");
+    alert(res.error || "❌ Failed to add course. Check console for details.");
   }
 }
 </script>

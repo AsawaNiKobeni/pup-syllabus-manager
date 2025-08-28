@@ -4,6 +4,7 @@ header('Content-Type: application/json');
 
 $action = $_GET['action'] ?? '';
 
+
 function respond($data, $code = 200) {
   http_response_code($code);
   echo json_encode($data);
@@ -255,6 +256,102 @@ if ($action === 'create_syllabus') {
     respond(["success"=>true,"syllabus_id"=>$syllabus_id]);
 }
 
+/* =========================
+   CREATE NEW COURSE WITH FULL CONTENT
+========================= */
+if ($action === 'add_course') {
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    // 1. Insert course meta
+    $code = esc($conn, $input['code'] ?? '');
+    $title = esc($conn, $input['title'] ?? '');
+    $credits = intval($input['credits'] ?? 0);
+    $description = esc($conn, $input['description'] ?? '');
+    $prereq = esc($conn, $input['prereq'] ?? '');
+    $coreq = esc($conn, $input['coreq'] ?? '');
+    $schedule_day = esc($conn, $input['schedule_day'] ?? '');
+    $schedule_time = esc($conn, $input['schedule_time'] ?? '');
+    $room = esc($conn, $input['room'] ?? '');
+
+    $sql = "INSERT INTO courses 
+        (code, title, credits, description, prereq, coreq, schedule_day, schedule_time, room)
+        VALUES ('$code', '$title', $credits, '$description', '$prereq', '$coreq', '$schedule_day', '$schedule_time', '$room')";
+    if (!$conn->query($sql)) respond(["error"=>$conn->error], 500);
+    $course_id = $conn->insert_id;
+
+    // 2. Create syllabus
+    $conn->query("INSERT INTO syllabi (course_id, created_at) VALUES ($course_id, NOW())");
+    $syllabus_id = $conn->insert_id;
+
+    // 3. Faculty
+    if(!empty($input['faculty'])) {
+        $fac = $input['faculty'];
+        $name = esc($conn, $fac['name'] ?? '');
+        $consultation = esc($conn, $fac['consultation'] ?? '');
+        $contact = esc($conn, $fac['contact'] ?? '');
+        $office = esc($conn, $fac['office'] ?? '');
+        $conn->query("INSERT INTO faculty_info (syllabus_id, name, consultation_time, contact, office)
+                      VALUES ($syllabus_id, '$name', '$consultation', '$contact', '$office')");
+    }
+
+    // 4. Sections
+    if(!empty($input['sections'])) {
+        foreach($input['sections'] as $section_type => $content) {
+            $content = esc($conn, $content);
+            $conn->query("INSERT INTO syllabus_sections (syllabus_id, section_type, content)
+                          VALUES ($syllabus_id, '$section_type', '$content')");
+        }
+    }
+
+    // 5. Teaching Plan
+    if(!empty($input['teaching_plan'])) {
+        foreach($input['teaching_plan'] as $tp) {
+            $week = intval($tp['week'] ?? 0);
+            $desired_outcomes = esc($conn, $tp['outcomes'] ?? '');
+            $topics = esc($conn, $tp['topics'] ?? '');
+            $delivery = esc($conn, $tp['delivery'] ?? '');
+            $assessment = esc($conn, $tp['assessment'] ?? '');
+            $clo = esc($conn, $tp['clo'] ?? '');
+            $conn->query("INSERT INTO teaching_plan (syllabus_id, week_no, desired_outcomes, topics, instructional_delivery, assessment, clo_alignment)
+                          VALUES ($syllabus_id, $week, '$desired_outcomes', '$topics', '$delivery', '$assessment', '$clo')");
+        }
+    }
+
+    // 6. Bibliography
+    if(!empty($input['bibliography'])) {
+        foreach($input['bibliography'] as $b) {
+            $ref = esc($conn, $b['reference'] ?? '');
+            $url = esc($conn, $b['url'] ?? '');
+            $type = esc($conn, $b['type'] ?? '');
+            $conn->query("INSERT INTO bibliography (syllabus_id, reference_text, url, type)
+                          VALUES ($syllabus_id, '$ref', '$url', '$type')");
+        }
+    }
+
+    // 7. Rubrics
+    if(!empty($input['rubrics'])) {
+        foreach($input['rubrics'] as $r) {
+            $type = esc($conn, $r['type'] ?? '');
+            $criteria = esc($conn, $r['criteria'] ?? '');
+            $scale = esc($conn, $r['scale'] ?? '');
+            $conn->query("INSERT INTO rubrics (syllabus_id, rubric_type, criteria, grading_scale)
+                          VALUES ($syllabus_id, '$type', '$criteria', '$scale')");
+        }
+    }
+
+    // 8. Approvals
+    if(!empty($input['approvals'])) {
+        foreach($input['approvals'] as $a) {
+            $name = esc($conn, $a['name'] ?? '');
+            $role = esc($conn, $a['position'] ?? '');
+            $date = esc($conn, $a['date'] ?? '');
+            $conn->query("INSERT INTO approvals (syllabus_id, role, name, approval_date)
+                          VALUES ($syllabus_id, '$role', '$name', '$date')");
+        }
+    }
+
+    respond(["success"=>true, "course_id"=>$course_id, "syllabus_id"=>$syllabus_id]);
+}
 
 
 respond(["error"=>"Unknown action"], 404);

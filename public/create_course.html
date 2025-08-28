@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Create Course — PUP Syllabus Manager (Full & Friendly)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; background:#f9f9f9; color:#222; line-height:1.6; }
+  header { background:#800000; color:#fff; padding:20px 30px; box-shadow:0 2px 5px rgba(0,0,0,.2); }
+  header h1 { margin:0; font-size:1.8rem; }
+  nav { background:#660000; padding:10px 30px; }
+  nav a { color:#fff; margin-right:20px; text-decoration:none; font-weight:500; transition:0.2s; }
+  nav a:hover { text-decoration:underline; color:#ffddcc; }
+  main { max-width:1100px; margin:30px auto; padding:0 20px; }
+  .card { background:#fff; border-radius:10px; padding:25px; margin:25px 0; box-shadow:0 3px 10px rgba(0,0,0,.08); transition:0.3s; }
+  h2 { margin-top:0; color:#800000; border-bottom:2px solid #eee; padding-bottom:8px; }
+  h3 { color:#660000; margin-bottom:8px; }
+  label { display:block; margin-top:12px; font-weight:600; }
+  input, textarea, select, button { padding:10px 12px; font-size:1rem; border-radius:6px; border:1px solid #ccc; width:100%; box-sizing:border-box; }
+  textarea { resize:vertical; }
+  button { background:#800000; color:#fff; border:none; cursor:pointer; transition:0.2s; font-weight:600; margin-top:15px; }
+  button:hover { background:#a00000; }
+  .btn-secondary { background:#555; }
+  .btn-secondary:hover { background:#666; }
+  .grid { display:grid; gap:16px; grid-template-columns:1fr 1fr; }
+  .full-width { grid-column:1/-1; }
+  .section-editor { margin-top:10px; }
+  .section-row {
+    border: 1px solid #ddd;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 10px;
+    background: #fafafa;
+    position: relative;
+  }
+  .section-row h4 {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    color: #800000;
+  }
+  .section-row .row-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+  .section-row input, .section-row textarea {
+    width: 100%;
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>PUP Syllabus Manager</h1>
+</header>
+<nav>
+  <a href="index.html">🏠 Home</a>
+  <a href="view_courses.html">📚 View Courses</a>
+  <a href="create_course.html">➕ Create Course</a>
+</nav>
+<main>
+<form id="newCourseForm" onsubmit="createCourse(event)">
+
+  <!-- Course Meta -->
+  <div class="card">
+    <h2>Course Information</h2>
+    <div class="grid">
+      <div><label>Course Code</label><input id="new_code" type="text" required></div>
+      <div><label>Credits</label><input id="new_credits" type="number" min="0" required></div>
+      <div class="full-width"><label>Course Title</label><input id="new_title" type="text" required></div>
+      <div class="full-width"><label>Description</label><textarea id="new_description" rows="4"></textarea></div>
+      <div><label>Schedule Day</label><input id="new_schedule_day" type="text"></div>
+      <div><label>Schedule Time</label><input id="new_schedule_time" type="text"></div>
+      <div><label>Room</label><input id="new_room" type="text"></div>
+      <div><label>Pre-requisites</label><input id="new_prereq" type="text"></div>
+      <div><label>Co-requisites</label><input id="new_coreq" type="text"></div>
+    </div>
+  </div>
+
+  <!-- Faculty -->
+  <div class="card">
+    <h2>Faculty Information</h2>
+    <div class="grid">
+      <div><label>Name</label><input id="fac_name" type="text"></div>
+      <div><label>Consultation</label><input id="fac_consult" type="text"></div>
+      <div><label>Contact</label><input id="fac_contact" type="text"></div>
+      <div><label>Office</label><input id="fac_office" type="text"></div>
+    </div>
+  </div>
+
+  <!-- Sections -->
+  <div class="card">
+    <h2>Sections</h2>
+    <div class="grid">
+      <div class="full-width"><label>Institutional Learning Outcomes (ILO)</label><textarea id="ilo" rows="2" placeholder="Separate with ;"></textarea></div>
+      <div class="full-width"><label>Campus Goals</label><textarea id="campus_goals" rows="2" placeholder="Separate with ;"></textarea></div>
+      <div class="full-width"><label>Program Learning Outcomes (PLO)</label><textarea id="plo" rows="2" placeholder="Separate with ;"></textarea></div>
+      <div class="full-width"><label>Performance Indicators (PI)</label><textarea id="pi" rows="2" placeholder="Separate with ;"></textarea></div>
+      <div class="full-width"><label>Course Learning Outcomes (CLO)</label><textarea id="clo" rows="2" placeholder="Separate with ;"></textarea></div>
+      <div class="full-width"><label>Grading System</label><textarea id="grading" rows="2" placeholder="Separate with ;"></textarea></div>
+      <div class="full-width"><label>Classroom Policies</label><textarea id="policies" rows="2" placeholder="Separate with ;"></textarea></div>
+    </div>
+  </div>
+
+  <!-- Teaching Plan -->
+  <div class="card">
+    <h2>Teaching Plan</h2>
+    <div class="section-editor" id="teachingPlanEditor">
+      <button type="button" onclick="addTPRow()">+ Add Week</button>
+      <div id="tpContainer"></div>
+    </div>
+  </div>
+
+  <!-- Bibliography -->
+  <div class="card">
+    <h2>Bibliography</h2>
+    <div class="section-editor" id="bibliographyEditor">
+      <button type="button" onclick="addBibRow()">+ Add Reference</button>
+      <div id="bibContainer"></div>
+    </div>
+  </div>
+
+  <!-- Rubrics -->
+  <div class="card">
+    <h2>Rubrics</h2>
+    <div class="section-editor" id="rubricsEditor">
+      <button type="button" onclick="addRubRow()">+ Add Rubric</button>
+      <div id="rubContainer"></div>
+    </div>
+  </div>
+
+  <!-- Approvals -->
+  <div class="card">
+    <h2>Approvals</h2>
+    <div class="section-editor" id="approvalsEditor">
+      <button type="button" onclick="addAppRow()">+ Add Approval</button>
+      <div id="appContainer"></div>
+    </div>
+  </div>
+
+  <button type="submit">✅ Save Course</button>
+</form>
+</main>
+
+<script>
+const API_BASE = "http://localhost/syllabus/public/api.php?action=";
+
+async function request(action, params={}, method='POST') {
+  const url = API_BASE + encodeURIComponent(action);
+  const opts = { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(params) };
+  const res = await fetch(url, opts);
+  return res.json();
+}
+
+function addTPRow() {
+  const container = document.getElementById('tpContainer');
+  const rowIndex = container.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'section-row';
+  div.innerHTML = `
+    <h4>Week ${rowIndex}</h4>
+    <div class="grid">
+      <div><label>Week No</label><input type="number" placeholder="Week No"></div>
+      <div class="full-width"><label>Desired Outcomes</label><textarea placeholder="Desired Outcomes"></textarea></div>
+      <div class="full-width"><label>Topics</label><textarea placeholder="Topics"></textarea></div>
+      <div class="full-width"><label>Instructional Delivery</label><textarea placeholder="Instructional Delivery"></textarea></div>
+      <div class="full-width"><label>Assessment</label><textarea placeholder="Assessment"></textarea></div>
+      <div><label>CLO Alignment</label><input type="text" placeholder="CLO Alignment"></div>
+    </div>
+    <div class="row-actions"><button type="button" onclick="removeTPRow(this)">Remove</button></div>
+  `;
+  container.appendChild(div);
+}
+
+function removeTPRow(btn) {
+  const container = document.getElementById('tpContainer');
+  btn.closest('.section-row').remove();
+  Array.from(container.children).forEach((row, i) => row.querySelector('h4').textContent = `Week ${i + 1}`);
+}
+
+function addBibRow() {
+  const container = document.getElementById('bibContainer');
+  const rowIndex = container.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'section-row';
+  div.innerHTML = `
+    <h4>Reference ${rowIndex}</h4>
+    <div class="grid">
+      <div class="full-width"><label>Reference</label><input type="text" placeholder="Reference"></div>
+      <div class="full-width"><label>URL</label><input type="text" placeholder="URL"></div>
+      <div class="full-width"><label>Type</label><input type="text" placeholder="Type"></div>
+    </div>
+    <div class="row-actions"><button type="button" onclick="removeBibRow(this)">Remove</button></div>
+  `;
+  container.appendChild(div);
+}
+
+function removeBibRow(btn) {
+  const container = document.getElementById('bibContainer');
+  btn.closest('.section-row').remove();
+  Array.from(container.children).forEach((row, i) => row.querySelector('h4').textContent = `Reference ${i + 1}`);
+}
+
+function addRubRow() {
+  const container = document.getElementById('rubContainer');
+  const rowIndex = container.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'section-row';
+  div.innerHTML = `
+    <h4>Rubric ${rowIndex}</h4>
+    <div class="grid">
+      <div><label>Rubric Type</label><input type="text" placeholder="Rubric Type"></div>
+      <div class="full-width"><label>Criteria</label><textarea placeholder="Criteria"></textarea></div>
+      <div class="full-width"><label>Scale</label><textarea placeholder="Scale"></textarea></div>
+    </div>
+    <div class="row-actions"><button type="button" onclick="removeRubRow(this)">Remove</button></div>
+  `;
+  container.appendChild(div);
+}
+
+function removeRubRow(btn) {
+  const container = document.getElementById('rubContainer');
+  btn.closest('.section-row').remove();
+  Array.from(container.children).forEach((row, i) => row.querySelector('h4').textContent = `Rubric ${i + 1}`);
+}
+
+function addAppRow() {
+  const container = document.getElementById('appContainer');
+  const rowIndex = container.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'section-row';
+  div.innerHTML = `
+    <h4>Approval ${rowIndex}</h4>
+    <div class="grid">
+      <div><label>Approver Name</label><input type="text" placeholder="Approver Name"></div>
+      <div><label>Position</label><input type="text" placeholder="Position"></div>
+      <div><label>Date</label><input type="text" placeholder="Date"></div>
+    </div>
+    <div class="row-actions"><button type="button" onclick="removeAppRow(this)">Remove</button></div>
+  `;
+  container.appendChild(div);
+}
+
+function removeAppRow(btn) {
+  const container = document.getElementById('appContainer');
+  btn.closest('.section-row').remove();
+  Array.from(container.children).forEach((row, i) => row.querySelector('h4').textContent = `Approval ${i + 1}`);
+}
+
+async function createCourse(e) {
+  e.preventDefault();
+  const payload = {
+    code: document.getElementById('new_code').value.trim(),
+    title: document.getElementById('new_title').value.trim(),
+    credits: parseInt(document.getElementById('new_credits').value || 0, 10),
+    description: document.getElementById('new_description').value,
+    schedule_day: document.getElementById('new_schedule_day').value,
+    schedule_time: document.getElementById('new_schedule_time').value,
+    room: document.getElementById('new_room').value,
+    prereq: document.getElementById('new_prereq').value,
+    coreq: document.getElementById('new_coreq').value,
+    faculty: {
+      name: document.getElementById('fac_name').value,
+      consultation: document.getElementById('fac_consult').value,
+      contact: document.getElementById('fac_contact').value,
+      office: document.getElementById('fac_office').value
+    },
+    sections: {
+      ilo: document.getElementById('ilo').value,
+      campus_goals: document.getElementById('campus_goals').value,
+      plo: document.getElementById('plo').value,
+      pi: document.getElementById('pi').value,
+      clo: document.getElementById('clo').value,
+      grading: document.getElementById('grading').value,
+      policies: document.getElementById('policies').value
+    },
+    teaching_plan: Array.from(document.querySelectorAll('#tpContainer > .section-row')).map(div=>({
+      week: div.querySelector('input[type="number"]').value,
+      outcomes: div.querySelectorAll('textarea')[0].value,
+      topics: div.querySelectorAll('textarea')[1].value,
+      delivery: div.querySelectorAll('textarea')[2].value,
+      assessment: div.querySelectorAll('textarea')[3].value,
+      clo: div.querySelector('input[type="text"]').value
+    })),
+    bibliography: Array.from(document.querySelectorAll('#bibContainer > .section-row')).map(div=>({
+      reference: div.querySelectorAll('input')[0].value,
+      url: div.querySelectorAll('input')[1].value,
+      type: div.querySelectorAll('input')[2].value
+    })),
+    rubrics: Array.from(document.querySelectorAll('#rubContainer > .section-row')).map(div=>({
+      type: div.querySelectorAll('input')[0].value,
+      criteria: div.querySelectorAll('textarea')[0].value,
+      scale: div.querySelectorAll('textarea')[1].value
+    })),
+    approvals: Array.from(document.querySelectorAll('#appContainer > .section-row')).map(div=>({
+      name: div.querySelectorAll('input')[0].value,
+      position: div.querySelectorAll('input')[1].value,
+      date: div.querySelectorAll('input')[2].value
+    }))
+  };
+  const res = await request('add_course', payload, 'POST');
+  if (res.success) {
+    alert("✅ Course added!");
+    document.getElementById('newCourseForm').reset();
+    document.getElementById('tpContainer').innerHTML='';
+    document.getElementById('bibContainer').innerHTML='';
+    document.getElementById('rubContainer').innerHTML='';
+    document.getElementById('appContainer').innerHTML='';
+  } else {
+    alert(res.error || "❌ Failed to add course.");
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>View Courses — PUP Syllabus Manager (Editable)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:0; background:#f9f9f9; color:#222; line-height:1.6; }
+  header { background:#800000; color:#fff; padding:20px 30px; box-shadow:0 2px 5px rgba(0,0,0,.2); }
+  header h1 { margin:0; font-size:1.8rem; }
+  nav { background:#660000; padding:10px 30px; }
+  nav a { color:#fff; margin-right:20px; text-decoration:none; font-weight:500; transition:0.2s; }
+  nav a:hover { text-decoration:underline; color:#ffddcc; }
+  main { max-width:1200px; margin:30px auto; padding:0 20px; }
+  .card { background:#fff; border-radius:10px; padding:20px; margin:20px 0; box-shadow:0 3px 10px rgba(0,0,0,.08); transition:0.3s; }
+  .card:hover { box-shadow:0 5px 15px rgba(0,0,0,.12); }
+  h2 { margin-top:0; color:#800000; border-bottom:2px solid #eee; padding-bottom:5px; }
+  h3 { margin-bottom:10px; color:#660000; }
+  select, button, input, textarea { padding:8px 10px; font-size:1rem; border-radius:6px; border:1px solid #ccc; }
+  button { background:#800000; color:#fff; border:none; cursor:pointer; transition:.2s; }
+  button:hover { background:#a00000; }
+  .btn-secondary { background:#555; }
+  .btn-secondary:hover { background:#666; }
+  .btn-link { background:transparent; color:#800000; border:none; text-decoration:underline; padding:0; cursor:pointer; }
+  table { border-collapse: collapse; width: 100%; margin-top: 15px; font-size:0.95rem; }
+  table th, table td { border: 1px solid #ddd; padding:10px; text-align: left; vertical-align: top; }
+  table th { background:#f2f2f2; position: sticky; top:0; z-index:1; }
+  table tr:nth-child(even) { background:#fafafa; }
+  table tr:hover { background:#f1f1f1; }
+  ul, ol { margin:8px 0 15px 20px; }
+  #courseArea { animation: fadeIn 0.25s ease-in; }
+  @keyframes fadeIn { from {opacity:0} to {opacity:1} }
+  .scrollable { overflow-x:auto; }
+  .grid { display:grid; gap:14px; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); }
+  .row-actions { display:flex; gap:8px; align-items:center; }
+  .muted { color:#666; font-style:italic; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#eee; font-size:.85rem; }
+  .notice { padding:10px 12px; border-left:4px solid #800000; background:#fff3f3; border-radius:6px; }
+  .inline-edit { background:#fff8e1; border:1px dashed #e1b000; border-radius:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PUP Syllabus Manager</h1>
+</header>
+<nav>
+  <a href="index.html">🏠 Home</a>
+  <a href="view_courses.html">📚 View Courses</a>
+  <a href="create_course.html">➕ Create Course</a>
+</nav>
+<main>
+  <!-- Course Selection -->
+  <div class="card">
+    <h2>Select Course</h2>
+    <div class="grid" style="align-items:end;">
+      <div>
+        <label for="courseSelect" class="muted">Course</label><br>
+        <select id="courseSelect"></select>
+      </div>
+      <div>
+        <button onclick="loadCourse()">Load</button>
+      </div>
+      <div id="status" class="muted"></div>
+    </div>
+  </div>
+
+  <!-- Course Details -->
+  <div id="courseArea" style="display:none;">
+    <div class="card">
+      <div class="grid" style="grid-template-columns:1.2fr 1fr;">
+        <div>
+          <h2 id="courseTitle"></h2>
+          <p><b>Code:</b> <span id="courseCode"></span></p>
+          <p><b>Credits:</b> <span id="courseCredits"></span></p>
+          <p><b>Room:</b> <span id="courseRoom"></span></p>
+          <p><b>Schedule:</b> <span id="courseSchedule"></span></p>
+        </div>
+        <div class="notice">
+          <div><b>Pre-requisites:</b> <span id="coursePrereq" class="pill"></span></div>
+          <div style="margin-top:8px;"><b>Co-requisites:</b> <span id="courseCoreq" class="pill"></span></div>
+          <div class="row-actions" style="margin-top:10px;">
+            <button class="btn-link" onclick="toggleCourseEdit(true)">Edit course meta</button>
+          </div>
+        </div>
+      </div>
+      <div id="courseDescWrap" style="margin-top:10px;">
+        <p><b>Description:</b> <span id="courseDesc"></span></p>
+      </div>
+
+      <!-- Course inline edit -->
+      <div id="courseEdit" style="display:none; margin-top:10px;" class="inline-edit">
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); padding:12px;">
+          <label>Code <input id="edit_code"></label>
+          <label>Title <input id="edit_title"></label>
+          <label>Credits <input type="number" id="edit_credits" min="0"></label>
+          <label>Room <input id="edit_room"></label>
+          <label>Day <input id="edit_day"></label>
+          <label>Time <input id="edit_time"></label>
+          <label>Pre-req <input id="edit_prereq"></label>
+          <label>Co-req <input id="edit_coreq"></label>
+          <label style="grid-column:1/-1;">Description
+            <textarea id="edit_desc" rows="3" style="width:100%;"></textarea>
+          </label>
+        </div>
+        <div style="padding:0 12px 12px;">
+          <button onclick="saveCourse()" >Save</button>
+          <button class="btn-secondary" onclick="toggleCourseEdit(false)">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Faculty -->
+    <div class="card" id="facultyCard">
+      <h2>Faculty</h2>
+      <div id="facultyView"></div>
+      <div id="facultyEdit" style="display:none;" class="inline-edit">
+        <div class="grid" style="padding:12px;">
+          <label>Name <input id="fac_name"></label>
+          <label>Consultation <input id="fac_consult"></label>
+          <label>Contact <input id="fac_contact"></label>
+          <label>Office <input id="fac_office"></label>
+        </div>
+        <div style="padding:0 12px 12px;">
+          <button onclick="saveFaculty()">Save</button>
+          <button class="btn-secondary" onclick="toggleFacultyEdit(false)">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sections -->
+    <div class="card" id="sectionsCard">
+      <h2>Sections</h2>
+      <div id="sectionsContainer"></div>
+    </div>
+
+    <!-- Teaching Plan -->
+    <div class="card" id="teachingPlanCard">
+      <h2>Teaching Plan</h2>
+      <div class="scrollable">
+        <table id="tpTable">
+          <thead>
+            <tr>
+              <th style="width:60px;">Week</th>
+              <th>Desired Outcomes</th>
+              <th>Topics</th>
+              <th>Instructional Delivery</th>
+              <th>Assessment</th>
+              <th style="width:120px;">CLO</th>
+              <th style="width:140px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bibliography -->
+    <div class="card" id="bibliographyCard">
+      <h2>Bibliography</h2>
+      <div class="scrollable">
+        <table id="bibTable">
+          <thead><tr><th>Reference</th><th>URL</th><th>Type</th><th style="width:140px;">Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Rubrics -->
+    <div class="card" id="rubricsCard">
+      <h2>Rubrics</h2>
+      <div class="scrollable">
+        <table id="rubTable">
+          <thead><tr><th>Type</th><th>Criteria</th><th>Scale</th><th style="width:140px;">Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Approvals -->
+    <div class="card" id="approvalsCard">
+      <h2>Approvals</h2>
+      <div class="scrollable">
+        <table id="appTable">
+          <thead><tr><th>Role</th><th>Name</th><th>Date</th><th style="width:140px;">Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const API = "http://localhost/syllabus/public/api.php?action=";
+let CURRENT = { course:null, syllabus:null, data:null };
+
+function setStatus(msg, ok=true){
+  const s = document.getElementById('status');
+  s.textContent = msg||'';
+  s.style.color = ok?'#2f6d2f':'#a00000';
+  if(msg) setTimeout(()=>s.textContent='', 2500);
+}
+
+async function fetchAPI(url, options){
+  const res = await fetch(url, options);
+  try { return await res.json(); } catch { return {error:'Invalid JSON'}; }
+}
+
+async function loadCourses(){
+  const courses = await fetchAPI(API+"get_courses");
+  const sel = document.getElementById('courseSelect');
+  sel.innerHTML = "<option value=''>-- select --</option>";
+  (courses||[]).forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = `${c.code} — ${c.title}`;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadCourse(){
+  const id = document.getElementById('courseSelect').value;
+  if(!id){ document.getElementById('courseArea').style.display='none'; return; }
+
+  // Clear previous
+  document.getElementById('courseArea').style.display='none';
+  document.getElementById('sectionsContainer').innerHTML='';
+  document.querySelector('#tpTable tbody').innerHTML='';
+  document.querySelector('#bibTable tbody').innerHTML='';
+  document.querySelector('#rubTable tbody').innerHTML='';
+  document.querySelector('#appTable tbody').innerHTML='';
+  document.getElementById('facultyView').innerHTML='';
+
+  const data = await fetchAPI(API+"get_course&id="+id);
+  if(data.error){ alert("Failed to load course: "+data.error); return; }
+  CURRENT.course = data.course;
+  CURRENT.syllabus = data.syllabus;
+  CURRENT.data = data;
+
+  document.getElementById('courseArea').style.display='block';
+
+  const c = data.course;
+  document.getElementById('courseTitle').textContent = c.title||'';
+  document.getElementById('courseCode').textContent = c.code||'';
+  document.getElementById('courseCredits').textContent = c.credits??'';
+  document.getElementById('courseRoom').textContent = c.room||'';
+  document.getElementById('courseSchedule').textContent = `${c.schedule_day||''} ${c.schedule_time||''}`.trim();
+  document.getElementById('courseDesc').textContent = c.description||'';
+  document.getElementById('coursePrereq').textContent = (c.prereq&&c.prereq.trim())?c.prereq:'None';
+  document.getElementById('courseCoreq').textContent = (c.coreq&&c.coreq.trim())?c.coreq:'None';
+
+  document.getElementById('edit_code').value=c.code||'';
+  document.getElementById('edit_title').value=c.title||'';
+  document.getElementById('edit_credits').value=c.credits??'';
+  document.getElementById('edit_room').value=c.room||'';
+  document.getElementById('edit_day').value=c.schedule_day||'';
+  document.getElementById('edit_time').value=c.schedule_time||'';
+  document.getElementById('edit_prereq').value=c.prereq||'';
+  document.getElementById('edit_coreq').value=c.coreq||'';
+  document.getElementById('edit_desc').value=c.description||'';
+
+  renderFaculty(data.faculty);
+  renderSections(data.sections);
+  renderTeachingPlan(data.teaching_plan);
+  renderBibliography(data.bibliography);
+  renderRubrics(data.rubrics);
+  renderApprovals(data.approvals);
+  setStatus('Course loaded');
+}
+
+/* ===== Course meta edit ===== */
+function toggleCourseEdit(show){
+  document.getElementById('courseEdit').style.display = show ? 'block' : 'none';
+}
+async function saveCourse(){
+  const c = CURRENT.course;
+  const body = new URLSearchParams({
+    id: c.id,
+    code: document.getElementById('edit_code').value,
+    title: document.getElementById('edit_title').value,
+    credits: document.getElementById('edit_credits').value,
+    room: document.getElementById('edit_room').value,
+    schedule_day: document.getElementById('edit_day').value,
+    schedule_time: document.getElementById('edit_time').value,
+    prereq: document.getElementById('edit_prereq').value,
+    coreq: document.getElementById('edit_coreq').value,
+    description: document.getElementById('edit_desc').value
+  });
+  const res = await fetchAPI(API+'update_course', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  if(res.success){ setStatus('Course updated'); loadCourse(); toggleCourseEdit(false); }
+  else alert(res.error||'Update failed');
+}
+
+/* ===== Faculty ===== */
+function renderFaculty(f){
+  const v = document.getElementById('facultyView');
+  const e = document.getElementById('facultyEdit');
+  if(!f){
+    v.innerHTML = `<p class="muted">No faculty info.</p>
+                   <div class="row-actions"><button class="btn-link" onclick="toggleFacultyEdit(true)">Add / Edit</button></div>`;
+    document.getElementById('fac_name').value='';
+    document.getElementById('fac_consult').value='';
+    document.getElementById('fac_contact').value='';
+    document.getElementById('fac_office').value='';
+    return;
+  }
+  v.innerHTML = `
+    <p><b>${f.name||''}</b></p>
+    <p>Consultation: ${f.consultation_time||''}</p>
+    <p>Contact: ${f.contact||''}</p>
+    <p>Office: ${f.office||''}</p>
+    <div class="row-actions"><button class="btn-link" onclick="toggleFacultyEdit(true)">Edit</button></div>
+  `;
+  document.getElementById('fac_name').value = f.name||'';
+  document.getElementById('fac_consult').value = f.consultation_time||'';
+  document.getElementById('fac_contact').value = f.contact||'';
+  document.getElementById('fac_office').value = f.office||'';
+}
+function toggleFacultyEdit(show){
+  document.getElementById('facultyEdit').style.display = show ? 'block' : 'none';
+}
+async function saveFaculty(){
+  const s = CURRENT.syllabus?.id;
+  if(!s){ alert('No syllabus found'); return; }
+  const body = new URLSearchParams({
+    syllabus_id: s,
+    name: document.getElementById('fac_name').value,
+    consultation_time: document.getElementById('fac_consult').value,
+    contact: document.getElementById('fac_contact').value,
+    office: document.getElementById('fac_office').value
+  });
+  const res = await fetchAPI(API+'update_faculty', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  if(res.success){ setStatus('Faculty saved'); toggleFacultyEdit(false); loadCourse(); }
+  else alert(res.error||'Save failed');
+}
+
+/* ===== Sections ===== */
+function renderSections(sections){
+  const wrap = document.getElementById('sectionsContainer');
+  wrap.innerHTML = '';
+
+  // Order and display rules (hide Vision/Mission/Quality Policy)
+  const order = [
+    'Institutional Learning Outcomes (ILO)',
+    'Campus Goals',
+    'Program Learning Outcomes (PLO)',
+    'Performance Indicators (PI)',
+    'Course Learning Outcomes (CLO)',
+    'Grading System',
+    'Classroom Policies'
+  ];
+
+  order.forEach(type=>{
+    const arr = sections[type];
+    if(!arr || !arr.length) return;
+
+    // Extract contents (for now assume 1 row per type, your DB fits this)
+    const row = arr[0];
+    const content = row.content || '';
+
+    // Rendering variants
+    let inner = '';
+    if (['Institutional Learning Outcomes (ILO)','Campus Goals'].includes(type)) {
+      const items = content.split(';').map(x=>x.trim()).filter(Boolean);
+      inner = `<ul>${items.map(i=>`<li>${i}</li>`).join('')}</ul>`;
+    } else if (['Classroom Policies'].includes(type)) {
+      const items = content.split(';').map(x=>x.trim()).filter(Boolean);
+      inner = `<ol>${items.map(i=>`<li>${i}</li>`).join('')}</ol>`;
+    } else {
+      // Table per item (split by ;)
+      const items = content.split(';').map(x=>x.trim()).filter(Boolean);
+      inner = `<div class="scrollable"><table><thead><tr><th>${type}</th></tr></thead><tbody>
+               ${items.map(i=>`<tr><td>${i}</td></tr>`).join('')}
+               </tbody></table></div>`;
+    }
+
+    // render card with inline editor hidden by default
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="card" id="sec-${row.id}" data-section-type="${type.replace(/"/g,'&quot;')}" style="margin:10px 0;">
+        <h3>${type}</h3>
+        <div class="sec-view">${inner}</div>
+        <div class="sec-edit inline-edit" style="display:none; padding:12px;">
+          <textarea style="width:100%; height:110px;">${content.replace(/`/g,'\\`')}</textarea>
+          <div style="margin-top:10px;">
+            <button onclick="saveSection(${row.id})">Save</button>
+            <button class="btn-secondary" onclick="toggleSectionEdit(${row.id}, false)">Cancel</button>
+          </div>
+        </div>
+        <div class="row-actions" style="margin-top:8px;">
+          <button class="btn-link" onclick="toggleSectionEdit(${row.id}, true)">Edit</button>
+        </div>
+      </div>
+    `);
+  });
+}
+
+function toggleSectionEdit(id, show){
+  const card = document.getElementById(`sec-${id}`);
+  if(!card) return;
+  const view = card.querySelector('.sec-view');
+  const edit = card.querySelector('.sec-edit');
+  if(show){
+    view.style.display = 'none';
+    edit.style.display = 'block';
+  } else {
+    view.style.display = 'block';
+    edit.style.display = 'none';
+  }
+}
+
+async function saveSection(rowId){
+  const card = document.getElementById(`sec-${rowId}`);
+  if(!card){ alert('Section not found'); return; }
+  const syllabus_id = CURRENT.syllabus?.id;
+  if(!syllabus_id){ alert('No syllabus found'); return; }
+  const section_type = card.dataset.sectionType || '';
+  const textarea = card.querySelector('textarea');
+  const content = textarea ? textarea.value : '';
+  const body = new URLSearchParams({
+    syllabus_id,
+    section_type,
+    content
+  });
+  const res = await fetchAPI(API+'update_section', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  if(res.success){
+    setStatus(`${section_type} updated`);
+    loadCourse();
+  } else {
+    alert(res.error || 'Update failed');
+  }
+}
+
+/* ===== Teaching Plan ===== */
+function renderTeachingPlan(rows){
+  const tb = document.querySelector('#tpTable tbody');
+  tb.innerHTML = '';
+  if(!rows || !rows.length){
+    tb.innerHTML = `<tr><td colspan="7" class="muted">No teaching plan data found.</td></tr>`;
+    return;
+  }
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="number" value="${r.week_no||''}" style="width:70px" data-f="week_no"></td>
+      <td><textarea rows="2" style="width:100%" data-f="desired_outcomes">${r.desired_outcomes||''}</textarea></td>
+      <td><textarea rows="2" style="width:100%" data-f="topics">${r.topics||''}</textarea></td>
+      <td><textarea rows="2" style="width:100%" data-f="instructional_delivery">${r.instructional_delivery||''}</textarea></td>
+      <td><textarea rows="2" style="width:100%" data-f="assessment">${r.assessment||''}</textarea></td>
+      <td><input type="text" value="${r.clo_alignment||''}" data-f="clo_alignment"></td>
+      <td class="row-actions">
+        <button onclick="saveTPRow(${r.id}, this)">Save</button>
+      </td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+async function saveTPRow(id, btn){
+  const tr = btn.closest('tr');
+  const fields = {};
+  tr.querySelectorAll('[data-f]').forEach(el=>{
+    fields[el.getAttribute('data-f')] = el.value;
+  });
+  const body = new URLSearchParams({ id, ...fields });
+  const res = await fetchAPI(API+'update_teaching_plan', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  if(res.success){ setStatus('Teaching plan row saved'); }
+  else alert(res.error||'Save failed');
+}
+
+/* ===== Bibliography ===== */
+function renderBibliography(rows){
+  const tb = document.querySelector('#bibTable tbody');
+  tb.innerHTML = '';
+  if(!rows || !rows.length){
+    tb.innerHTML = `<tr><td colspan="4" class="muted">No bibliography.</td></tr>`;
+    return;
+  }
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><textarea rows="2" style="width:100%" data-f="reference_text">${r.reference_text||''}</textarea></td>
+      <td><input type="text" value="${r.url||''}" style="width:100%" data-f="url"></td>
+      <td><input type="text" value="${r.type||''}" data-f="type"></td>
+      <td class="row-actions"><button onclick="saveBib(${r.id}, this)">Save</button></td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+async function saveBib(id, btn){
+  const tr = btn.closest('tr');
+  const payload = {};
+  tr.querySelectorAll('[data-f]').forEach(el=>payload[el.getAttribute('data-f')] = el.value);
+  const body = new URLSearchParams({ id, ...payload });
+  const res = await fetchAPI(API+'update_bibliography', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  if(res.success){ setStatus('Bibliography saved'); }
+  else alert(res.error||'Save failed');
+}
+
+/* ===== Rubrics ===== */
+function renderRubrics(rows){
+  const tb = document.querySelector('#rubTable tbody');
+  tb.innerHTML = '';
+  if(!rows || !rows.length){
+    tb.innerHTML = `<tr><td colspan="4" class="muted">No rubrics.</td></tr>`;
+    return;
+  }
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${r.rubric_type||''}" data-f="rubric_type" style="width:100%"></td>
+      <td><textarea rows="2" style="width:100%" data-f="criteria">${r.criteria||''}</textarea></td>
+      <td><textarea rows="2" style="width:100%" data-f="grading_scale">${r.grading_scale||''}</textarea></td>
+      <td class="row-actions"><button onclick="saveRub(${r.id}, this)">Save</button></td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+async function saveRub(id, btn){
+  const tr = btn.closest('tr');
+  const payload = {};
+  tr.querySelectorAll('[data-f]').forEach(el=>payload[el.getAttribute('data-f')] = el.value);
+  const body = new URLSearchParams({ id, ...payload });
+  const res = await fetchAPI(API+'update_rubric', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  if(res.success){ setStatus('Rubric saved'); }
+  else alert(res.error||'Save failed');
+}
+
+/* ===== Approvals ===== */
+function renderApprovals(rows){
+  const tb = document.querySelector('#appTable tbody');
+  tb.innerHTML = '';
+  if(!rows || !rows.length){
+    tb.innerHTML = `<tr><td colspan="4" class="muted">No approvals.</td></tr>`;
+    return;
+  }
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${r.role||''}" data-f="role" style="width:100%"></td>
+      <td><input type="text" value="${r.name||''}" data-f="name" style="width:100%"></td>
+      <td><input type="date" value="${r.approval_date||''}" data-f="approval_date"></td>
+      <td class="row-actions"><button onclick="saveApproval(${r.id}, this)">Save</button></td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+async function saveApproval(id, btn){
+  const tr = btn.closest('tr');
+  const payload = {};
+  tr.querySelectorAll('[data-f]').forEach(el=>payload[el.getAttribute('data-f')] = el.value);
+  const body = new URLSearchParams({ id, ...payload });
+  const res = await fetchAPI(API+'update_approval', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  if(res.success){ setStatus('Approval saved'); }
+  else alert(res.error||'Save failed');
+}
+
+document.getElementById('courseSelect').addEventListener('change', ()=>{loadCourse();});
+loadCourses();
+</script>
+</body>
+</html>

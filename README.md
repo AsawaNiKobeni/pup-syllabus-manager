@@ -8,8 +8,9 @@
 3. Start XAMPP (Apache + MySQL)
 4. Import `syllabus_db.sql` into phpMyAdmin
 5. Update `api.php` with database credentials
+
    $db_host = 'localhost';
    $db_user = 'root';   // default for XAMPP
    $db_pass = '';       // default is empty
    $db_name = 'syllabus_db';
-6. Open `view_courses.html` in browser via localhost
+7. Open `view_courses.html` in browser via localhost

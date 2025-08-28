@@ -78,8 +78,9 @@
         <div class="notice">
           <div><b>Pre-requisites:</b> <span id="coursePrereq" class="pill"></span></div>
           <div style="margin-top:8px;"><b>Co-requisites:</b> <span id="courseCoreq" class="pill"></span></div>
-          <div class="row-actions" style="margin-top:10px;">
+          <div class="row-actions" style="margin-top:10px; gap:12px;">
             <button class="btn-link" onclick="toggleCourseEdit(true)">Edit course meta</button>
+            <button class="btn-link" style="color:#a00000;" onclick="deleteCourse()">Delete course</button>
           </div>
         </div>
       </div>
@@ -551,6 +552,27 @@ async function saveApproval(id, btn){
   const res = await fetchAPI(API+'update_approval', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
   if(res.success){ setStatus('Approval saved'); }
   else alert(res.error||'Save failed');
+}
+
+async function deleteCourse(){
+  if(!CURRENT.course){ alert("No course selected"); return; }
+  if(!confirm("Are you sure you want to delete this course? This cannot be undone.")) return;
+
+  const body = new URLSearchParams({ id: CURRENT.course.id });
+  const res = await fetchAPI(API+'delete_course', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/x-www-form-urlencoded' },
+    body
+  });
+
+  if(res.success){
+    alert("Course deleted successfully.");
+    CURRENT.course = null;
+    document.getElementById('courseArea').style.display='none';
+    loadCourses();
+  } else {
+    alert(res.error || "Failed to delete course.");
+  }
 }
 
 document.getElementById('courseSelect').addEventListener('change', ()=>{loadCourse();});

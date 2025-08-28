@@ -353,5 +353,26 @@ if ($action === 'add_course') {
     respond(["success"=>true, "course_id"=>$course_id, "syllabus_id"=>$syllabus_id]);
 }
 
+/* =========================
+   DELETE: Course + related data
+========================= */
+if ($action === 'delete_course') {
+    $id = intval($_POST['id'] ?? 0);
+    if (!$id) respond(["error"=>"Missing course id"], 400);
 
+    // Delete course → but also clean up related records
+    // (foreign key constraints with ON DELETE CASCADE would be better if set up)
+    $conn->query("DELETE FROM approvals WHERE syllabus_id IN (SELECT id FROM syllabi WHERE course_id=$id)");
+    $conn->query("DELETE FROM rubrics WHERE syllabus_id IN (SELECT id FROM syllabi WHERE course_id=$id)");
+    $conn->query("DELETE FROM bibliography WHERE syllabus_id IN (SELECT id FROM syllabi WHERE course_id=$id)");
+    $conn->query("DELETE FROM teaching_plan WHERE syllabus_id IN (SELECT id FROM syllabi WHERE course_id=$id)");
+    $conn->query("DELETE FROM syllabus_sections WHERE syllabus_id IN (SELECT id FROM syllabi WHERE course_id=$id)");
+    $conn->query("DELETE FROM faculty_info WHERE syllabus_id IN (SELECT id FROM syllabi WHERE course_id=$id)");
+    $conn->query("DELETE FROM syllabi WHERE course_id=$id");
+
+    $ok = $conn->query("DELETE FROM courses WHERE id=$id");
+
+    if (!$ok) respond(["error"=>$conn->error], 500);
+    respond(["success"=>true]);
+}
 respond(["error"=>"Unknown action"], 404);
